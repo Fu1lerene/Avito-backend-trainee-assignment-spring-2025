@@ -84,7 +84,7 @@ WITH pvz_json AS (
         '[]'::json
       )
       FROM receptions r
-      WHERE r.pvz_id = P.id
+      WHERE r.pvz_id = p.id
         AND ($1::timestamp IS NULL OR r.created_at >= $1)
         AND ($2::timestamp IS NULL OR r.created_at <= $2)
     )

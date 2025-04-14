@@ -2,13 +2,12 @@ package product
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"avito/internal/utils/roles"
 	"context"
-	"errors"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -39,12 +38,12 @@ func (m *MockReceptionRepo) Create(ctx context.Context, pvzID uuid.UUID) (*model
 	return nil, args.Error(1)
 }
 
-func (m *MockReceptionRepo) Close(ctx context.Context, pvzID uuid.UUID) (bool, error) {
+func (m *MockReceptionRepo) Close(ctx context.Context, pvzID uuid.UUID) error {
 	args := m.Called(ctx, pvzID)
-	if rec, ok := args.Get(0).(bool); ok {
-		return rec, args.Error(1)
+	if _, ok := args.Get(0).(bool); ok {
+		return args.Error(1)
 	}
-	return false, args.Error(1)
+	return args.Error(1)
 }
 
 type MockProductRepo struct {
@@ -59,12 +58,12 @@ func (m *MockProductRepo) Create(ctx context.Context, receptionID uuid.UUID, pro
 	return nil, args.Error(1)
 }
 
-func (m *MockProductRepo) DeleteLast(ctx context.Context, receptionID uuid.UUID) (bool, error) {
+func (m *MockProductRepo) DeleteLast(ctx context.Context, receptionID uuid.UUID) error {
 	args := m.Called(ctx, receptionID)
-	if rec, ok := args.Get(0).(bool); ok {
-		return rec, args.Error(1)
+	if _, ok := args.Get(0).(bool); ok {
+		return args.Error(1)
 	}
-	return false, args.Error(1)
+	return args.Error(1)
 }
 
 func TestService_Add_Success(t *testing.T) {
@@ -101,8 +100,8 @@ func TestService_Add_Success(t *testing.T) {
 
 	productResult, err := svc.Add(ctx, productType, pvzId)
 
-	assert.NoError(t, err)
-	assert.Equal(t, dummyProduct, productResult)
+	require.NoError(t, err)
+	require.Equal(t, dummyProduct, productResult)
 
 	mockReceptionRepo.AssertExpectations(t)
 	mockProductRepo.AssertExpectations(t)
@@ -133,10 +132,9 @@ func TestService_DeleteLastProduct_Success(t *testing.T) {
 		On("DeleteLast", ctx, receptionID).
 		Return(true, nil)
 
-	result, err := svc.DeleteLastProduct(ctx, pvzId)
+	err := svc.DeleteLastProduct(ctx, pvzId)
 
-	assert.NoError(t, err)
-	assert.True(t, result)
+	require.NoError(t, err)
 
 	mockReceptionRepo.AssertExpectations(t)
 	mockProductRepo.AssertExpectations(t)
@@ -150,11 +148,10 @@ func TestService_Delete_AccessDenied(t *testing.T) {
 
 	ctx := context.Background()
 
-	ok, err := svc.DeleteLastProduct(ctx, uuid.New())
+	err := svc.DeleteLastProduct(ctx, uuid.New())
 
-	assert.False(t, ok)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Error(t, err)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }
 
 func TestService_Add_AccessDenied(t *testing.T) {
@@ -167,9 +164,9 @@ func TestService_Add_AccessDenied(t *testing.T) {
 
 	productResult, err := svc.Add(ctx, models.Shoes, uuid.New())
 
-	assert.Nil(t, productResult)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Nil(t, productResult)
+	require.Error(t, err)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }
 
 func TestService_Add_InvalidProductType(t *testing.T) {
@@ -182,7 +179,7 @@ func TestService_Add_InvalidProductType(t *testing.T) {
 
 	productResult, err := svc.Add(ctx, "Книги", uuid.New())
 
-	assert.Nil(t, productResult)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, core_errors.ErrInvalidProductType))
+	require.Nil(t, productResult)
+	require.Error(t, err)
+	require.ErrorIs(t, err, core_errors.ErrInvalidProductType)
 }

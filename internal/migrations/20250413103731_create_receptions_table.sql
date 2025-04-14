@@ -6,5 +6,8 @@ CREATE TABLE IF NOT EXISTS receptions (
     status TEXT NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_created_at ON receptions(created_at);
+
 -- +goose Down
+DROP INDEX IF EXISTS idx_created_at;
 DROP TABLE IF EXISTS receptions;

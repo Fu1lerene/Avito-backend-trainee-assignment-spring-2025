@@ -2,13 +2,12 @@ package pvz
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"avito/internal/utils/roles"
 	"context"
-	"errors"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -58,8 +57,8 @@ func TestService_Create_Success(t *testing.T) {
 
 	pvzResult, err := svc.Create(ctx, dummyPvz)
 
-	assert.NoError(t, err)
-	assert.Equal(t, dummyPvz, pvzResult)
+	require.NoError(t, err)
+	require.Equal(t, dummyPvz, pvzResult)
 
 	mockPvzRepo.AssertExpectations(t)
 }
@@ -86,8 +85,8 @@ func TestService_GetWithFilter_Success(t *testing.T) {
 
 	pvzResult, err := svc.GetWithFilter(ctx, filter)
 
-	assert.NoError(t, err)
-	assert.Equal(t, dummyPvzs, pvzResult)
+	require.NoError(t, err)
+	require.Equal(t, dummyPvzs, pvzResult)
 
 	mockPvzRepo.AssertExpectations(t)
 }
@@ -113,9 +112,9 @@ func TestService_Create_AccessDenied(t *testing.T) {
 
 	pvzResult, err := svc.Create(ctx, dummyPvz)
 
-	assert.Error(t, err)
-	assert.Nil(t, pvzResult)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Error(t, err)
+	require.Nil(t, pvzResult)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }
 
 func TestService_Create_InvalidCity(t *testing.T) {
@@ -139,9 +138,9 @@ func TestService_Create_InvalidCity(t *testing.T) {
 
 	pvzResult, err := svc.Create(ctx, dummyPvz)
 
-	assert.Error(t, err)
-	assert.Nil(t, pvzResult)
-	assert.True(t, errors.Is(err, core_errors.ErrInvalidCity))
+	require.Error(t, err)
+	require.Nil(t, pvzResult)
+	require.ErrorIs(t, err, core_errors.ErrInvalidCity)
 }
 
 func TestService_GetWithFilter_AccessDenied(t *testing.T) {
@@ -166,7 +165,7 @@ func TestService_GetWithFilter_AccessDenied(t *testing.T) {
 
 	pvzResult, err := svc.GetWithFilter(ctx, filter)
 
-	assert.Error(t, err)
-	assert.Nil(t, pvzResult)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Error(t, err)
+	require.Nil(t, pvzResult)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }

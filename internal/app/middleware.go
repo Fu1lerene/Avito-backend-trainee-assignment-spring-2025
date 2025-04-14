@@ -1,10 +1,11 @@
 package app
 
 import (
+	"avito/internal/api"
 	"avito/internal/utils"
-	"avito/internal/utils/errors"
 	"avito/internal/utils/jwt"
 	"avito/internal/utils/roles"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -18,14 +19,15 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		authHeader := r.Header.Get("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			errors.Write(w, errors.ErrInvalidToken, http.StatusForbidden)
+			api.WriteForbidden(w, "invalid token or missing token")
 			return
 		}
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		claims, err := jwt.Parse(tokenStr)
 		if err != nil {
-			errors.Write(w, errors.ErrInvalidToken, http.StatusForbidden)
+			slog.Error("token parse error", "error", err.Error())
+			api.WriteForbidden(w, "invalid token")
 			return
 		}
 

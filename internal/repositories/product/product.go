@@ -2,7 +2,7 @@ package product
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"context"
 
 	"github.com/google/uuid"
@@ -11,7 +11,7 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, receptionID uuid.UUID, productType models.ProductType) (*models.Product, error)
-	DeleteLast(ctx context.Context, receptionID uuid.UUID) (bool, error)
+	DeleteLast(ctx context.Context, receptionID uuid.UUID) error
 }
 
 type repository struct {
@@ -36,7 +36,7 @@ func (r *repository) Create(ctx context.Context, receptionID uuid.UUID, productT
 	return &product, nil
 }
 
-func (r *repository) DeleteLast(ctx context.Context, receptionID uuid.UUID) (bool, error) {
+func (r *repository) DeleteLast(ctx context.Context, receptionID uuid.UUID) error {
 	cmd, err := r.db.Exec(ctx, `
 		DELETE FROM products
 		WHERE id = (
@@ -48,10 +48,10 @@ func (r *repository) DeleteLast(ctx context.Context, receptionID uuid.UUID) (boo
 	`, receptionID)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 	if cmd.RowsAffected() == 0 {
-		return false, core_errors.ErrNoProductsToDelete
+		return core_errors.ErrNoProductsToDelete
 	}
-	return true, nil
+	return nil
 }

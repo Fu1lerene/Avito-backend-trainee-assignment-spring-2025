@@ -2,24 +2,27 @@ package api
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"log/slog"
 	"net/http"
 )
 
 func (s *Server) PostPvz(w http.ResponseWriter, r *http.Request) {
 	var body PVZ
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("json decode error", "error", err.Error())
+		WriteBadRequest(w, "invalid request body")
 		return
 	}
 
 	city := models.PvzCity(body.City)
 	id, err := uuid.Parse(body.Id.String())
 	if err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("uuid parse error", "error", err.Error())
+		WriteBadRequest(w, "invalid request")
 		return
 	}
 	pvz := &models.Pvz{
@@ -30,11 +33,12 @@ func (s *Server) PostPvz(w http.ResponseWriter, r *http.Request) {
 	pvz, err = s.pvzService.Create(r.Context(), pvz)
 
 	if err != nil {
+		slog.Error("create pvz error", "error", err.Error())
 		switch {
 		case errors.Is(err, core_errors.ErrAccessDenied):
-			core_errors.Write(w, err, http.StatusForbidden)
+			WriteForbidden(w, "access denied")
 		default:
-			core_errors.Write(w, err, http.StatusBadRequest)
+			WriteBadRequest(w, "invalid request")
 		}
 		return
 	}
@@ -59,11 +63,12 @@ func (s *Server) GetPvz(w http.ResponseWriter, r *http.Request, params GetPvzPar
 	}
 	resp, err := s.pvzService.GetWithFilter(r.Context(), filter)
 	if err != nil {
+		slog.Error("get pvz error", "error", err.Error())
 		switch {
 		case errors.Is(err, core_errors.ErrAccessDenied):
-			core_errors.Write(w, err, http.StatusForbidden)
+			WriteForbidden(w, "access denied")
 		default:
-			core_errors.Write(w, err, http.StatusBadRequest)
+			WriteBadRequest(w, "invalid request")
 		}
 		return
 	}

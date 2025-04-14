@@ -2,28 +2,31 @@ package api
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"encoding/json"
 	"errors"
 	openapi_types "github.com/oapi-codegen/runtime/types"
+	"log/slog"
 	"net/http"
 )
 
 func (s *Server) PostProducts(w http.ResponseWriter, r *http.Request) {
 	var body PostProductsJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("json decode error", "error", err.Error())
+		WriteBadRequest(w, "invalid request body")
 		return
 	}
 
 	productType := models.ProductType(body.Type)
 	product, err := s.productService.Add(r.Context(), productType, body.PvzId)
 	if err != nil {
+		slog.Error("add product error", "error", err.Error())
 		switch {
 		case errors.Is(err, core_errors.ErrAccessDenied):
-			core_errors.Write(w, err, http.StatusForbidden)
+			WriteForbidden(w, "access denied")
 		default:
-			core_errors.Write(w, err, http.StatusBadRequest)
+			WriteBadRequest(w, "invalid request or no active receptions")
 		}
 		return
 	}
@@ -41,13 +44,14 @@ func (s *Server) PostProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) PostPvzPvzIdDeleteLastProduct(w http.ResponseWriter, r *http.Request, pvzId openapi_types.UUID) {
-	_, err := s.productService.DeleteLastProduct(r.Context(), pvzId)
+	err := s.productService.DeleteLastProduct(r.Context(), pvzId)
 	if err != nil {
+		slog.Error("delete last product error", "error", err.Error())
 		switch {
 		case errors.Is(err, core_errors.ErrAccessDenied):
-			core_errors.Write(w, err, http.StatusForbidden)
+			WriteForbidden(w, "access denied")
 		default:
-			core_errors.Write(w, err, http.StatusBadRequest)
+			WriteBadRequest(w, "invalid request or no active receptions or no products to delete")
 		}
 		return
 	}

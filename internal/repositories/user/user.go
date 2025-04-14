@@ -2,7 +2,7 @@ package user
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5"
@@ -10,7 +10,7 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, email, hashedPassword string, role models.UserRole) (bool, error)
+	Create(ctx context.Context, email, hashedPassword string, role models.UserRole) error
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
 }
 
@@ -22,21 +22,21 @@ func New(db *pgxpool.Pool) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, email, hashedPassword string, role models.UserRole) (bool, error) {
+func (r *repository) Create(ctx context.Context, email, hashedPassword string, role models.UserRole) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO users (email, password, role) 
+		INSERT INTO users (email, password_hash, role) 
 		VALUES ($1, $2, $3)
 	`, email, hashedPassword, role)
 
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func (r *repository) FindUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT id, email, password, role 
+		SELECT id, email, password_hash, role 
 		FROM users 
 		WHERE email = $1
 	`, email)

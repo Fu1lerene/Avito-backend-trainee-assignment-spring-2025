@@ -2,8 +2,8 @@ package auth
 
 import (
 	"avito/internal/models"
+	"avito/internal/models/core_errors"
 	"avito/internal/repositories/user"
-	"avito/internal/utils/errors"
 	"avito/internal/utils/jwt"
 	"avito/internal/utils/roles"
 	"context"
@@ -13,7 +13,7 @@ import (
 
 type Service interface {
 	DummyLogin(role models.UserRole) (string, error)
-	Register(ctx context.Context, role models.UserRole, password, email string) (bool, error)
+	Register(ctx context.Context, role models.UserRole, password, email string) error
 	Login(ctx context.Context, password, email string) (string, error)
 }
 
@@ -27,57 +27,57 @@ func New(userRepo user.Repository) Service {
 
 func (s *service) DummyLogin(role models.UserRole) (string, error) {
 	if !roles.IsRoleAllowed(role) {
-		return "", errors.ErrInvalidRole
+		return "", core_errors.ErrInvalidRole
 	}
 
 	token, err := jwt.Generate(role)
 	if err != nil {
-		return "", errors.ErrInvalidRequest
+		return "", err
 	}
 
 	return token, err
 }
 
-func (s *service) Register(ctx context.Context, role models.UserRole, password, email string) (bool, error) {
+func (s *service) Register(ctx context.Context, role models.UserRole, password, email string) error {
 	if !roles.IsRoleAllowed(role) {
-		return false, errors.ErrInvalidRole
+		return core_errors.ErrInvalidRole
 	}
 	_, err := mail.ParseAddress(email)
 	if err != nil {
-		return false, errors.ErrInvalidRequest
+		return err
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return false, errors.ErrInvalidRequest
+		return err
 	}
 
-	_, err = s.userRepo.Create(ctx, email, string(hashed), role)
+	err = s.userRepo.Create(ctx, email, string(hashed), role)
 	if err != nil {
-		return false, errors.ErrInvalidRequest
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func (s *service) Login(ctx context.Context, password, email string) (string, error) {
 	user, err := s.userRepo.FindUserByEmail(ctx, email)
 	if err != nil {
-		return "", errors.ErrInvalidCredentials
+		return "", core_errors.ErrInvalidCredentials
 	}
 
 	_, err = mail.ParseAddress(email)
 	if err != nil {
-		return "", errors.ErrInvalidRequest
+		return "", err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", errors.ErrInvalidCredentials
+		return "", err
 	}
 
 	token, err := jwt.Generate(user.Role)
 	if err != nil {
-		return "", errors.ErrInvalidRequest
+		return "", err
 	}
 
 	return token, nil

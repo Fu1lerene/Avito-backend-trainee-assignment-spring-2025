@@ -2,16 +2,18 @@ package api
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 )
 
 func (s *Server) PostDummyLogin(w http.ResponseWriter, r *http.Request) {
 	var body PostDummyLoginJSONBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("json decode error", "error", err.Error())
+		WriteBadRequest(w, "invalid request body")
 		return
 	}
 
@@ -19,7 +21,8 @@ func (s *Server) PostDummyLogin(w http.ResponseWriter, r *http.Request) {
 
 	token, err := s.authService.DummyLogin(role)
 	if err != nil {
-		core_errors.Write(w, err, http.StatusBadRequest)
+		slog.Error("dummylogin error", "error", err.Error())
+		WriteBadRequest(w, "invalid request")
 		return
 	}
 
@@ -29,14 +32,16 @@ func (s *Server) PostDummyLogin(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostRegister(w http.ResponseWriter, r *http.Request) {
 	var body PostRegisterJSONBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("json decode error", "error", err.Error())
+		WriteBadRequest(w, "invalid request body")
 		return
 	}
 
 	role := models.UserRole(body.Role)
-	_, err := s.authService.Register(r.Context(), role, body.Password, string(body.Email))
+	err := s.authService.Register(r.Context(), role, body.Password, string(body.Email))
 	if err != nil {
-		core_errors.Write(w, err, http.StatusBadRequest)
+		slog.Error("register error", "error", err.Error())
+		WriteBadRequest(w, "invalid request")
 		return
 	}
 
@@ -46,17 +51,19 @@ func (s *Server) PostRegister(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostLogin(w http.ResponseWriter, r *http.Request) {
 	var body PostLoginJSONBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		core_errors.Write(w, core_errors.ErrInvalidRequest, http.StatusBadRequest)
+		slog.Error("json decode error", "error", err.Error())
+		WriteBadRequest(w, "invalid request body")
 		return
 	}
 
 	token, err := s.authService.Login(r.Context(), body.Password, string(body.Email))
 	if err != nil {
+		slog.Error("login error", "error", err.Error())
 		switch {
 		case errors.Is(err, core_errors.ErrInvalidCredentials):
-			core_errors.Write(w, err, http.StatusUnauthorized)
+			WriteUnauthorized(w, "invalid credentials")
 		default:
-			core_errors.Write(w, err, http.StatusBadRequest)
+			WriteBadRequest(w, "invalid request")
 		}
 		return
 	}

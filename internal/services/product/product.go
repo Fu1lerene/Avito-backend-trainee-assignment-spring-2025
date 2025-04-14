@@ -2,10 +2,10 @@ package product
 
 import (
 	"avito/internal/models"
+	"avito/internal/models/core_errors"
 	"avito/internal/repositories/product"
 	"avito/internal/repositories/reception"
 	"avito/internal/utils"
-	core_errors "avito/internal/utils/errors"
 	"avito/internal/utils/roles"
 	"context"
 	"github.com/google/uuid"
@@ -13,7 +13,7 @@ import (
 
 type Service interface {
 	Add(ctx context.Context, productType models.ProductType, PvzId uuid.UUID) (*models.Product, error)
-	DeleteLastProduct(ctx context.Context, pvzId uuid.UUID) (bool, error)
+	DeleteLastProduct(ctx context.Context, pvzId uuid.UUID) error
 }
 
 type service struct {
@@ -51,21 +51,21 @@ func (s *service) Add(ctx context.Context, productType models.ProductType, pvzId
 	return product, nil
 }
 
-func (s *service) DeleteLastProduct(ctx context.Context, pvzId uuid.UUID) (bool, error) {
+func (s *service) DeleteLastProduct(ctx context.Context, pvzId uuid.UUID) error {
 	role, ok := roles.RoleFromContext(ctx)
 	if !ok || role != models.UserRoleEmployee {
-		return false, core_errors.ErrAccessDenied
+		return core_errors.ErrAccessDenied
 	}
 
 	reception, err := s.receptionRepo.GetLastActiveReception(ctx, pvzId)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	_, err = s.productRepo.DeleteLast(ctx, reception.ID)
+	err = s.productRepo.DeleteLast(ctx, reception.ID)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }

@@ -6,5 +6,8 @@ CREATE TABLE IF NOT EXISTS products (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_reception_id ON products(reception_id);
+
 -- +goose Down
+DROP INDEX IF EXISTS idx_reception_id;
 DROP TABLE IF EXISTS products;

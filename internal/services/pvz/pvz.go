@@ -2,9 +2,9 @@ package pvz
 
 import (
 	"avito/internal/models"
+	"avito/internal/models/core_errors"
 	"avito/internal/repositories/pvz"
 	"avito/internal/utils"
-	core_errors "avito/internal/utils/errors"
 	"avito/internal/utils/roles"
 	"context"
 )

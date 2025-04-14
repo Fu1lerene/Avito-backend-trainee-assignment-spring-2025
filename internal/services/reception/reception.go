@@ -2,8 +2,8 @@ package reception
 
 import (
 	"avito/internal/models"
+	"avito/internal/models/core_errors"
 	"avito/internal/repositories/reception"
-	core_errors "avito/internal/utils/errors"
 	"avito/internal/utils/roles"
 	"context"
 	"github.com/google/uuid"
@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	Open(ctx context.Context, pvzId uuid.UUID) (*models.Reception, error)
-	Close(ctx context.Context, pvzId uuid.UUID) (bool, error)
+	Close(ctx context.Context, pvzId uuid.UUID) error
 }
 
 type service struct {
@@ -45,16 +45,16 @@ func (s *service) Open(ctx context.Context, pvzId uuid.UUID) (*models.Reception,
 
 	return rec, nil
 }
-func (s *service) Close(ctx context.Context, pvzId uuid.UUID) (bool, error) {
+func (s *service) Close(ctx context.Context, pvzId uuid.UUID) error {
 	role, ok := roles.RoleFromContext(ctx)
 	if !ok || role != models.UserRoleEmployee {
-		return false, core_errors.ErrAccessDenied
+		return core_errors.ErrAccessDenied
 	}
 
-	_, err := s.receptionRepo.Close(ctx, pvzId)
+	err := s.receptionRepo.Close(ctx, pvzId)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }

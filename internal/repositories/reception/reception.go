@@ -2,7 +2,7 @@ package reception
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5"
@@ -15,7 +15,7 @@ type Repository interface {
 	Create(ctx context.Context, pvzID uuid.UUID) (*models.Reception, error)
 	HasActiveReception(ctx context.Context, pvzID uuid.UUID) (bool, error)
 	GetLastActiveReception(ctx context.Context, pvzId uuid.UUID) (*models.Reception, error)
-	Close(ctx context.Context, pvzID uuid.UUID) (bool, error)
+	Close(ctx context.Context, pvzID uuid.UUID) error
 }
 type repository struct {
 	db *pgxpool.Pool
@@ -74,7 +74,7 @@ func (r *repository) GetLastActiveReception(ctx context.Context, pvzID uuid.UUID
 	return &rec, nil
 }
 
-func (r *repository) Close(ctx context.Context, pvzID uuid.UUID) (bool, error) {
+func (r *repository) Close(ctx context.Context, pvzID uuid.UUID) error {
 	cmd, err := r.db.Exec(ctx, `
 		UPDATE receptions
 		SET status = $1
@@ -82,10 +82,10 @@ func (r *repository) Close(ctx context.Context, pvzID uuid.UUID) (bool, error) {
 	`, models.Close, pvzID, models.InProgress)
 
 	if err != nil {
-		return false, err
+		return err
 	}
 	if cmd.RowsAffected() == 0 {
-		return false, core_errors.ErrDeleteReception
+		return core_errors.ErrDeleteReception
 	}
-	return true, nil
+	return nil
 }

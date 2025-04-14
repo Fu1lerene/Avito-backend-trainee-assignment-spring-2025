@@ -2,13 +2,12 @@ package reception
 
 import (
 	"avito/internal/models"
-	core_errors "avito/internal/utils/errors"
+	"avito/internal/models/core_errors"
 	"avito/internal/utils/roles"
 	"context"
-	"errors"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -39,12 +38,12 @@ func (m *MockReceptionRepo) Create(ctx context.Context, pvzID uuid.UUID) (*model
 	return nil, args.Error(1)
 }
 
-func (m *MockReceptionRepo) Close(ctx context.Context, pvzID uuid.UUID) (bool, error) {
+func (m *MockReceptionRepo) Close(ctx context.Context, pvzID uuid.UUID) error {
 	args := m.Called(ctx, pvzID)
-	if rec, ok := args.Get(0).(bool); ok {
-		return rec, args.Error(1)
+	if _, ok := args.Get(0).(bool); ok {
+		return args.Error(1)
 	}
-	return false, args.Error(1)
+	return args.Error(1)
 }
 
 func TestService_Open_Success(t *testing.T) {
@@ -73,8 +72,8 @@ func TestService_Open_Success(t *testing.T) {
 
 	rec, err := svc.Open(ctx, pvzId)
 
-	assert.NoError(t, err)
-	assert.Equal(t, dummyReception, rec)
+	require.NoError(t, err)
+	require.Equal(t, dummyReception, rec)
 
 	mockReceptionRepo.AssertExpectations(t)
 }
@@ -92,10 +91,9 @@ func TestService_Close_Success(t *testing.T) {
 		On("Close", ctx, pvzId).
 		Return(false, nil)
 
-	ok, err := svc.Close(ctx, pvzId)
+	err := svc.Close(ctx, pvzId)
 
-	assert.NoError(t, err)
-	assert.True(t, ok)
+	require.NoError(t, err)
 
 	mockReceptionRepo.AssertExpectations(t)
 }
@@ -126,9 +124,9 @@ func TestService_Open_AccessDenied(t *testing.T) {
 
 	rec, err := svc.Open(ctx, pvzId)
 
-	assert.Error(t, err)
-	assert.Nil(t, rec)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Error(t, err)
+	require.Nil(t, rec)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }
 
 func TestService_Close_AccessDenied(t *testing.T) {
@@ -143,11 +141,10 @@ func TestService_Close_AccessDenied(t *testing.T) {
 		On("Close", ctx, pvzId).
 		Return(false, nil)
 
-	ok, err := svc.Close(ctx, pvzId)
+	err := svc.Close(ctx, pvzId)
 
-	assert.Error(t, err)
-	assert.False(t, ok)
-	assert.True(t, errors.Is(err, core_errors.ErrAccessDenied))
+	require.Error(t, err)
+	require.ErrorIs(t, err, core_errors.ErrAccessDenied)
 }
 
 func TestService_Open_ReceptionNotClosed(t *testing.T) {
@@ -164,7 +161,7 @@ func TestService_Open_ReceptionNotClosed(t *testing.T) {
 
 	rec, err := svc.Open(ctx, pvzId)
 
-	assert.Error(t, err)
-	assert.Nil(t, rec)
-	assert.True(t, errors.Is(err, core_errors.ErrReceptionNotClosed))
+	require.Error(t, err)
+	require.Nil(t, rec)
+	require.ErrorIs(t, err, core_errors.ErrReceptionNotClosed)
 }
